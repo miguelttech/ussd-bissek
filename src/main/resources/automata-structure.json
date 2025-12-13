@@ -1,0 +1,117 @@
+{
+  "automata": {
+    "id": "USSD_MAIN_AUTOMATA",
+    "name": "USSD Main State Machine",
+    "version": "1.0.0",
+    "initialState": "WELCOME",
+    "states": [
+      {
+        "id": "WELCOME",
+        "label": "Welcome State",
+        "type": "initial",
+        "description": "Entry point of the USSD application"
+      },
+      {
+        "id": "MAIN_MENU",
+        "label": "Main Menu",
+        "type": "normal",
+        "description": "Main menu with available options"
+      },
+      {
+        "id": "USER_INPUT",
+        "label": "User Input",
+        "type": "normal",
+        "description": "State for receiving user input"
+      },
+      {
+        "id": "VALIDATION",
+        "label": "Validation",
+        "type": "normal",
+        "description": "Validation state for user data"
+      },
+      {
+        "id": "CONFIRMATION",
+        "label": "Confirmation",
+        "type": "normal",
+        "description": "Confirmation state for user actions"
+      },
+      {
+        "id": "PROCESSING",
+        "label": "Processing",
+        "type": "normal",
+        "description": "Processing user request"
+      },
+      {
+        "id": "SUCCESS",
+        "label": "Success",
+        "type": "final",
+        "description": "Successful completion"
+      },
+      {
+        "id": "ERROR",
+        "label": "Error",
+        "type": "final",
+        "description": "Error state"
+      },
+      {
+        "id": "TIMEOUT",
+        "label": "Timeout",
+        "type": "final",
+        "description": "Session timeout"
+      }
+    ],
+    "transitions": [
+      {
+        "from": "WELCOME",
+        "to": "MAIN_MENU",
+        "trigger": "START"
+      },
+      {
+        "from": "MAIN_MENU",
+        "to": "USER_INPUT",
+        "trigger": "OPTION_SELECTED"
+      },
+      {
+        "from": "USER_INPUT",
+        "to": "VALIDATION",
+        "trigger": "INPUT_PROVIDED"
+      },
+      {
+        "from": "VALIDATION",
+        "to": "CONFIRMATION",
+        "trigger": "VALID"
+      },
+      {
+        "from": "VALIDATION",
+        "to": "USER_INPUT",
+        "trigger": "INVALID"
+      },
+      {
+        "from": "CONFIRMATION",
+        "to": "PROCESSING",
+        "trigger": "CONFIRM"
+      },
+      {
+        "from": "CONFIRMATION",
+        "to": "MAIN_MENU",
+        "trigger": "CANCEL"
+      },
+      {
+        "from": "PROCESSING",
+        "to": "SUCCESS",
+        "trigger": "SUCCESS"
+      },
+      {
+        "from": "PROCESSING",
+        "to": "ERROR",
+        "trigger": "ERROR"
+      },
+      {
+        "from": "MAIN_MENU",
+        "to": "TIMEOUT",
+        "trigger": "IDLE_TIMEOUT"
+      }
+    ],
+    "finalStates": ["SUCCESS", "ERROR", "TIMEOUT"]
+  }
+}
