@@ -1,203 +1,147 @@
-// ============================================
-// ValidationService.java
-// ============================================
 package com.network.projet.ussd.service;
 
-import com.network.projet.ussd.exception.ValidationException;
-import com.network.projet.ussd.validator.*;
-import lombok.extern.slf4j.Slf4j;
+import java.util.regex.Pattern;
+
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Mono;
 
-import java.util.HashMap;
-import java.util.Map;
-
-/**
- * Centralized validation service.
- * Provides validation for all input types with consistent error handling.
- * 
- * <p>Supported Validations:
- * <ul>
- *   <li>Phone numbers (format and length)</li>
- *   <li>Email addresses (RFC 5322 compliant)</li>
- *   <li>Names (alphabetic with spaces)</li>
- *   <li>Passwords (strength requirements)</li>
- *   <li>Addresses (format and length)</li>
- *   <li>Cities (alphabetic)</li>
- *   <li>Weights (numeric range)</li>
- *   <li>Numeric values (with min/max)</li>
- * </ul>
- * 
- * @author Thomas Djotio Ndié
- * @version 1.0
- * @since 2025-01-15
- */
 @Service
-@Slf4j
 public class ValidationService {
     
-    // Validators (stateless, can be reused)
-    private final PhoneValidator phone_validator = new PhoneValidator();
-    private final EmailValidator email_validator = new EmailValidator();
-    private final NameValidator name_validator = new NameValidator();
-    private final PasswordValidator password_validator = new PasswordValidator();
-    private final AddressValidator address_validator = new AddressValidator();
-    private final CityValidator city_validator = new CityValidator();
-    private final WeightValidator weight_validator = new WeightValidator();
+    // Patterns de validation
+    private static final Pattern EMAIL_PATTERN = Pattern.compile(
+        "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$"
+    );
+    
+    private static final Pattern PHONE_PATTERN = Pattern.compile(
+        "^(237)?6[0-9]{8}$"
+    );
+    
+    private static final Pattern NAME_PATTERN = Pattern.compile(
+        "^[a-zA-ZÀ-ÿ\\s'-]{2,50}$"
+    );
     
     /**
-     * Validates phone number.
-     * 
-     * @param phone phone number
-     * @return Mono<String> validated phone or error
+     * Valide l'entrée selon le type de validation demandé
      */
-    public Mono<String> validate_phone(String phone) {
-        return Mono.defer(() -> {
-            if (phone_validator.isValid(phone)) {
-                return Mono.just(phone.trim());
-            }
-            return Mono.error(new ValidationException(
-                phone_validator.getErrorMessage(), "phone"));
-        });
-    }
-    
-    /**
-     * Validates email.
-     * 
-     * @param email email address
-     * @return Mono<String> validated email or error
-     */
-    public Mono<String> validate_email(String email) {
-        return Mono.defer(() -> {
-            if (email_validator.isValid(email)) {
-                return Mono.just(email.trim());
-            }
-            return Mono.error(new ValidationException(
-                email_validator.getErrorMessage(), "email"));
-        });
-    }
-    
-    /**
-     * Validates name.
-     * 
-     * @param name person name
-     * @return Mono<String> validated name or error
-     */
-    public Mono<String> validate_name(String name) {
-        return Mono.defer(() -> {
-            if (name_validator.isValid(name)) {
-                return Mono.just(name.trim());
-            }
-            return Mono.error(new ValidationException(
-                name_validator.getErrorMessage(), "name"));
-        });
-    }
-    
-    /**
-     * Validates password.
-     * 
-     * @param password password
-     * @return Mono<String> validated password or error
-     */
-    public Mono<String> validate_password(String password) {
-        return Mono.defer(() -> {
-            if (password_validator.isValid(password)) {
-                return Mono.just(password);
-            }
-            return Mono.error(new ValidationException(
-                password_validator.getErrorMessage(), "password"));
-        });
-    }
-    
-    /**
-     * Validates address.
-     * 
-     * @param address address string
-     * @return Mono<String> validated address or error
-     */
-    public Mono<String> validate_address(String address) {
-        return Mono.defer(() -> {
-            if (address_validator.isValid(address)) {
-                return Mono.just(address.trim());
-            }
-            return Mono.error(new ValidationException(
-                address_validator.getErrorMessage(), "address"));
-        });
-    }
-    
-    /**
-     * Validates city.
-     * 
-     * @param city city name
-     * @return Mono<String> validated city or error
-     */
-    public Mono<String> validate_city(String city) {
-        return Mono.defer(() -> {
-            if (city_validator.isValid(city)) {
-                return Mono.just(city.trim());
-            }
-            return Mono.error(new ValidationException(
-                city_validator.getErrorMessage(), "city"));
-        });
-    }
-    
-    /**
-     * Validates weight.
-     * 
-     * @param weight_str weight as string
-     * @return Mono<String> validated weight or error
-     */
-    public Mono<String> validate_weight(String weight_str) {
-        return Mono.defer(() -> {
-            if (weight_validator.isValid(weight_str)) {
-                return Mono.just(weight_str.trim());
-            }
-            return Mono.error(new ValidationException(
-                weight_validator.getErrorMessage(), "weight"));
-        });
-    }
-    
-    /**
-     * Validates multiple fields at once.
-     * Returns all errors in a map.
-     * 
-     * @param fields map of field names to values
-     * @return Mono<Map> empty if valid, error map otherwise
-     */
-    public Mono<Map<String, String>> validate_multiple(Map<String, String> fields) {
-        Map<String, String> errors = new HashMap<>();
+    public boolean validate(String validationType, String input) {
+        if (input == null || input.trim().isEmpty()) {
+            return false;
+        }
         
-        fields.forEach((field_name, value) -> {
-            InputValidator validator = get_validator_for_field(field_name);
-            if (validator != null && !validator.isValid(value)) {
-                errors.put(field_name, validator.getErrorMessage());
-            }
-        });
-        
-        if (errors.isEmpty()) {
-            return Mono.just(Map.of());
-        } else {
-            return Mono.error(new ValidationException(
-                "Multiple validation errors", errors));
+        switch (validationType.toLowerCase()) {
+            case "nomvalide":
+            case "namevalid":
+                return validateName(input);
+            
+            case "emailvalide":
+            case "emailvalid":
+                return validateEmail(input);
+            
+            case "numvalide":
+            case "telvalide":
+            case "phonevalid":
+                return validatePhone(input);
+            
+            case "villevalide":
+            case "cityvalid":
+                return validateCity(input);
+            
+            case "adressevalide":
+            case "addressvalid":
+                return validateAddress(input);
+            
+            case "descvalide":
+            case "descriptionvalid":
+                return validateDescription(input);
+            
+            case "poidsvalide":
+            case "weightvalid":
+                return validateWeight(input);
+            
+            case "valvalide":
+            case "valuevalid":
+                return validateValue(input);
+            
+            case "mdpvalide":
+            case "passwordvalid":
+                return validatePassword(input);
+            
+            default:
+                // Par défaut, accepte toute entrée non vide
+                return true;
         }
     }
     
     /**
-     * Gets appropriate validator for field name.
-     * 
-     * @param field_name field identifier
-     * @return validator instance
+     * Valide un nom
      */
-    private InputValidator get_validator_for_field(String field_name) {
-        return switch (field_name.toLowerCase()) {
-            case "phone", "phone_number" -> phone_validator;
-            case "email" -> email_validator;
-            case "name" -> name_validator;
-            case "password" -> password_validator;
-            case "address" -> address_validator;
-            case "city" -> city_validator;
-            case "weight" -> weight_validator;
-            default -> null;
-        };
+    public boolean validateName(String name) {
+        return name != null && NAME_PATTERN.matcher(name).matches();
+    }
+    
+    /**
+     * Valide un email
+     */
+    public boolean validateEmail(String email) {
+        return email != null && EMAIL_PATTERN.matcher(email).matches();
+    }
+    
+    /**
+     * Valide un numéro de téléphone
+     */
+    public boolean validatePhone(String phone) {
+        return phone != null && PHONE_PATTERN.matcher(phone).matches();
+    }
+    
+    /**
+     * Valide un nom de ville
+     */
+    public boolean validateCity(String city) {
+        return city != null && city.length() >= 2 && city.length() <= 50;
+    }
+    
+    /**
+     * Valide une adresse
+     */
+    public boolean validateAddress(String address) {
+        return address != null && address.length() >= 5 && address.length() <= 200;
+    }
+    
+    /**
+     * Valide une description
+     */
+    public boolean validateDescription(String description) {
+        return description != null && description.length() >= 3 && description.length() <= 500;
+    }
+    
+    /**
+     * Valide un poids (en kg)
+     */
+    public boolean validateWeight(String weight) {
+        try {
+            double w = Double.parseDouble(weight);
+            return w > 0 && w <= 1000; // max 1 tonne
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+    
+    /**
+     * Valide une valeur déclarée (en FCFA)
+     */
+    public boolean validateValue(String value) {
+        try {
+            double v = Double.parseDouble(value);
+            return v >= 0 && v <= 10000000; // max 10 millions FCFA
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+    
+    /**
+     * Valide un mot de passe
+     */
+    public boolean validatePassword(String password) {
+        return password != null && password.length() >= 6 && password.length() <= 50;
     }
 }

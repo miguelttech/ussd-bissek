@@ -1,67 +1,24 @@
-// ============================================
-// SessionRepository.java
-// ============================================
 package com.network.projet.ussd.repository;
 
+import org.springframework.data.r2dbc.repository.Query;
+import org.springframework.data.r2dbc.repository.R2dbcRepository;
 import org.springframework.stereotype.Repository;
+
+import com.network.projet.ussd.model.entities.Session;
+
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.time.Duration;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
-/**
- * In-memory session storage for USSD sessions.
- * Will be replaced with Redis in production.
- * 
- * @author Thomas Djotio Ndié
- * @version 1.0
- * @since 2025-01-15
- */
 @Repository
-public class SessionRepository {
+public interface SessionRepository extends R2dbcRepository<Session, Long> {
     
-    private final Map<String, Map<String, Object>> session_store = new ConcurrentHashMap<>();
-    private static final Duration SESSION_TIMEOUT = Duration.ofMinutes(10);
+    Mono<Session> findBySessionId(String sessionId);
     
-    /**
-     * Saves session data.
-     * 
-     * @param session_id session identifier
-     * @param data session data map
-     * @return Mono with completion
-     */
-    public Mono<Void> save(String session_id, Map<String, Object> data) {
-        return Mono.fromRunnable(() -> session_store.put(session_id, data));
-    }
+    Mono<Session> findByUserId(Long userId);
     
-    /**
-     * Retrieves session data.
-     * 
-     * @param session_id session identifier
-     * @return Mono with session data or empty
-     */
-    public Mono<Map<String, Object>> find(String session_id) {
-        return Mono.justOrEmpty(session_store.get(session_id));
-    }
+    @Query("SELECT * FROM sessions WHERE user_id = :userId AND is_active = true")
+    Flux<Session> findActiveSessionsByUserId(Long userId);
     
-    /**
-     * Deletes session.
-     * 
-     * @param session_id session identifier
-     * @return Mono with completion
-     */
-    public Mono<Void> delete(String session_id) {
-        return Mono.fromRunnable(() -> session_store.remove(session_id));
-    }
-    
-    /**
-     * Checks if session exists.
-     * 
-     * @param session_id session identifier
-     * @return Mono with true if exists
-     */
-    public Mono<Boolean> exists(String session_id) {
-        return Mono.just(session_store.containsKey(session_id));
-    }
+    @Query("DELETE FROM sessions WHERE is_active = false")
+    Mono<Void> deleteInactiveSessions();
 }

@@ -1,0 +1,303 @@
+{
+  "1": {
+    "message": "Bienvenue sur PickNDrop\n1. Envoyer un colis\n2. Suivre un colis\n3. Tarifs\n4. Marketplace\n5. Aide\n6. Devenir point relais\n7. Compte",
+    "options": {
+      "1": "2",
+      "2": "3",
+      "3": "4",
+      "4": "5",
+      "5": "6",
+      "6": "7",
+      "7": "8"
+    }
+  },
+  "2": {
+    "message": "Envoyer un colis\n99. Retour",
+    "options": {
+      "99": "1"
+    },
+    "onInvalid": "9"
+  },
+  "3": {
+    "message": "Entrez le numéro de suivi de votre colis :",
+    "validations": {
+      "idValide": "45"
+    },
+    "onInvalid": "3"
+  },
+  "4": {
+    "message": "Nos tarifs\n1. Free (0F à vie)\n2. Standard\n3. Pro\n4. Entreprise",
+    "options": {
+      "1": "61",
+      "2": "62",
+      "3": "63",
+      "4": "64"
+    }
+  },
+  "5": {
+    "message": "Marketplace - Fonctionnalité bientôt disponible\n99. Retour",
+    "options": {
+      "99": "1"
+    }
+  },
+  "6": {
+    "message": "Aide et support\nContactez-nous au: +237 XXX XXX XXX\nEmail: support@pickndrop.cm\n99. Retour",
+    "options": {
+      "99": "1"
+    }
+  },
+  "7": {
+    "message": "Devenir point relais",
+    "onInvalid": "52"
+  },
+  "8": {
+    "message": "Compte\n1. Se connecter\n2. Créer un compte",
+    "options": {
+      "1": "46",
+      "2": "47"
+    }
+  },
+  "9": {
+    "message": "Entrez le nom du destinataire :",
+    "validations": {
+      "nomValide": "10"
+    },
+    "onInvalid": "9"
+  },
+  "10": {
+    "message": "Entrez le téléphone du destinataire :",
+    "validations": {
+      "numValide": "11"
+    },
+    "onInvalid": "10"
+  },
+  "11": {
+    "message": "Entrez l'email du destinataire :",
+    "validations": {
+      "emailValide": "12"
+    },
+    "onInvalid": "11"
+  },
+  "12": {
+    "message": "Entrez la ville du destinataire :",
+    "validations": {
+      "villeValide": "15"
+    },
+    "onInvalid": "12"
+  },
+  "15": {
+    "message": "Entrez l'adresse du destinataire :",
+    "validations": {
+      "adresseValide": "16"
+    },
+    "onInvalid": "15"
+  },
+  "16": {
+    "message": "Description du colis :\n99. Modifier destinataire",
+    "validations": {
+      "descValide": "18"
+    },
+    "options": {
+      "99": "9"
+    },
+    "onInvalid": "16"
+  },
+  "18": {
+    "message": "Poids du colis (en kg) :",
+    "validations": {
+      "poidsValide": "22"
+    },
+    "onInvalid": "18"
+  },
+  "22": {
+    "message": "Le colis est-il fragile ?\n0. Non\n1. Oui",
+    "options": {
+      "0": "23",
+      "1": "23"
+    },
+    "onInvalid": "22"
+  },
+  "23": {
+    "message": "Le colis est-il périssable ?\n0. Non\n1. Oui",
+    "options": {
+      "0": "24",
+      "1": "24"
+    },
+    "onInvalid": "23"
+  },
+  "24": {
+    "message": "Le colis contient-il du liquide ?\n0. Non\n1. Oui",
+    "options": {
+      "0": "25",
+      "1": "25"
+    },
+    "onInvalid": "24"
+  },
+  "25": {
+    "message": "Voulez-vous assurer le colis ?\n0. Non\n1. Oui",
+    "options": {
+      "0": "27",
+      "1": "26"
+    },
+    "onInvalid": "25"
+  },
+  "26": {
+    "message": "Entrez la valeur déclarée (FCFA) :",
+    "validations": {
+      "valValide": "27"
+    },
+    "onInvalid": "26"
+  },
+  "27": {
+    "message": "Moyen de transport\n1. Camion\n2. Tricycle\n3. Moto\n4. Vélo\n5. Voiture\n99. Modifier colis",
+    "options": {
+      "1": "33",
+      "2": "33",
+      "3": "33",
+      "4": "33",
+      "5": "33",
+      "99": "16"
+    }
+  },
+  "33": {
+    "message": "Type de livraison\n1. Standard\n2. Express 48h\n3. Express 24h\n99. Modifier transport",
+    "options": {
+      "1": "37",
+      "2": "37",
+      "3": "37",
+      "99": "27"
+    }
+  },
+  "37": {
+    "message": "Type de paiement\n1. Espèces\n2. Paiement mobile\n3. Paiement par destinataire\n99. Modifier livraison",
+    "options": {
+      "1": "43",
+      "2": "39",
+      "3": "43",
+      "99": "33"
+    }
+  },
+  "39": {
+    "message": "Paiement mobile\n1. Mobile Money\n2. Orange Money\n99. Retour",
+    "options": {
+      "1": "43",
+      "2": "43",
+      "99": "37"
+    }
+  },
+  "43": {
+    "message": "Confirmation d'envoi\nVérifiez vos informations\n1. Confirmer\n90. Modifier destinataire\n91. Modifier colis\n92. Modifier transport\n93. Modifier livraison\n94. Modifier paiement",
+    "options": {
+      "1": "44",
+      "90": "9",
+      "91": "16",
+      "92": "27",
+      "93": "33",
+      "94": "37"
+    }
+  },
+  "44": {
+    "message": "Envoi effectué avec succès!\nVotre numéro de suivi: PND202412XXXXX\n1. Suivre ce colis",
+    "options": {
+      "1": "45"
+    },
+    "isFinal": true
+  },
+  "45": {
+    "message": "Statut de votre colis:\nEn cours de traitement\nLocalisation: Yaoundé\n99. Retour à l'accueil",
+    "options": {
+      "99": "3"
+    },
+    "isFinal": true
+  },
+  "46": {
+    "message": "Se connecter\n99. Retour",
+    "options": {
+      "99": "8"
+    },
+    "onInvalid": "48"
+  },
+  "47": {
+    "message": "Créer un compte",
+    "onInvalid": "52"
+  },
+  "48": {
+    "message": "Entrez votre email :",
+    "validations": {
+      "emailValide": "49"
+    },
+    "onInvalid": "48"
+  },
+  "49": {
+    "message": "Entrez votre mot de passe :",
+    "validations": {
+      "mdpValide": "50"
+    },
+    "onInvalid": "49"
+  },
+  "50": {
+    "message": "Accueil personnel\n1. Envoyer un colis\n2. Suivre un colis\n3. Mon compte",
+    "options": {
+      "1": "2",
+      "2": "3",
+      "3": "51"
+    }
+  },
+  "51": {
+    "message": "Informations de votre compte\nNom: Jean Dupont\nEmail: jean@example.com\nColis envoyés: 12\n99. Retour",
+    "options": {
+      "99": "50"
+    },
+    "isFinal": true
+  },
+  "52": {
+    "message": "Type de compte\n1. Client\n2. Freelance\n3. Agence\n4. Livreur",
+    "options": {
+      "1": "57",
+      "2": "57",
+      "3": "57",
+      "4": "57"
+    }
+  },
+  "57": {
+    "message": "Entrez votre nom complet :",
+    "validations": {
+      "nomValide": "58"
+    },
+    "onInvalid": "57"
+  },
+  "58": {
+    "message": "Entrez votre numéro de téléphone :",
+    "validations": {
+      "telValide": "59"
+    },
+    "onInvalid": "58"
+  },
+  "59": {
+    "message": "Entrez votre email :",
+    "validations": {
+      "emailValide": "60"
+    },
+    "onInvalid": "59"
+  },
+  "60": {
+    "message": "Créez votre mot de passe :",
+    "validations": {
+      "mdpValide": "50"
+    },
+    "onInvalid": "60"
+  },
+  "61": {
+    "message": "Plan FREE\n- 0 FCFA à vie\n- Suivi basique\n- Support email",
+    "onInvalid": "52"
+  },
+  "62": {
+    "message": "Plan STANDARD\n- 500 FCFA/mois\n- Suivi temps réel\n- Support prioritaire\n- Assurance incluse"
+  },
+  "63": {
+    "message": "Plan PRO\n- 2000 FCFA/mois\n- Suivi premium\n- Support 24/7\n- Remises volume"
+  },
+  "64": {
+    "message": "Plan ENTREPRISE\n- 5000 FCFA/mois\n- Solution personnalisée\n- API dédiée\n- Account manager"
+  }
+}
