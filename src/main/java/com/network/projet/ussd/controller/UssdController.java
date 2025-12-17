@@ -1,3 +1,7 @@
+// ============================================
+// UssdController.java
+// REST Controller for USSD requests with automaton architecture
+// ============================================
 package com.network.projet.ussd.controller;
 
 import com.network.projet.ussd.service.UssdService;
@@ -9,8 +13,9 @@ import reactor.core.publisher.Mono;
 
 /**
  * REST Controller for USSD requests from Africa's Talking.
+ * Handles incoming requests and delegates to UssdService.
  * 
- * <p>This controller handles incoming USSD requests following Africa's Talking API format:
+ * <p>Request format (Africa's Talking):
  * <pre>
  * POST /ussd/callback
  * Content-Type: application/x-www-form-urlencoded
@@ -22,21 +27,10 @@ import reactor.core.publisher.Mono;
  * - text: User's cumulative input (empty on first request)
  * </pre>
  * 
- * <p>Response Format:
+ * <p>Response format:
  * <pre>
  * CON Welcome to PickNDrop...  (Continue - user can respond)
  * END Thank you for using...   (End - session terminates)
- * </pre>
- * 
- * <p>Architecture Flow:
- * <pre>
- * Africa's Talking → Controller → UssdService → Business Logic
- *                        ↓
- *                   Validation
- *                        ↓
- *                   Logging
- *                        ↓
- *                Response (CON/END)
  * </pre>
  * 
  * @author Thomas Djotio Ndié
@@ -49,66 +43,50 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class UssdController {
     
-    private final UssdService ussd_service;
+    private final UssdService ussdService;
     
     /**
      * Main USSD callback endpoint for Africa's Talking.
      * 
-     * <p>Request Example:
-     * <pre>
-     * POST /ussd/callback
-     * sessionId=ATUid_12345
-     * serviceCode=*384*96#
-     * phoneNumber=+237600000000
-     * text=1*2*John
-     * </pre>
-     * 
-     * <p>Response Example:
-     * <pre>
-     * CON Entrez le nom du destinataire:
-     * </pre>
-     * 
-     * @param session_id unique session identifier from Africa's Talking
-     * @param service_code USSD code that was dialed
-     * @param phone_number user's phone number in E.164 format (+237XXXXXXXXX)
+     * @param sessionId unique session identifier from Africa's Talking
+     * @param serviceCode USSD code that was dialed
+     * @param phoneNumber user's phone number in E.164 format (+237XXXXXXXXX)
      * @param text cumulative user input separated by * (empty on first request)
-     * @return Mono<String> USSD response formatted as "CON message" or "END message"
+     * @return Mono with USSD response formatted as "CON message" or "END message"
      */
     @PostMapping(
         value = "/callback",
         consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
         produces = MediaType.TEXT_PLAIN_VALUE
     )
-    public Mono<String> handle_ussd_callback(
-            @RequestParam("sessionId") String session_id,
-            @RequestParam("serviceCode") String service_code,
-            @RequestParam("phoneNumber") String phone_number,
+    public Mono<String> handleUssdCallback(
+            @RequestParam("sessionId") String sessionId,
+            @RequestParam("serviceCode") String serviceCode,
+            @RequestParam("phoneNumber") String phoneNumber,
             @RequestParam(value = "text", defaultValue = "") String text) {
         
-        // Log incoming request (helps debugging in production)
+        // Log incoming request
         log.info("USSD Request - SessionId: {}, Phone: {}, ServiceCode: {}, Text: '{}'",
-            session_id, phone_number, service_code, text);
+            sessionId, phoneNumber, serviceCode, text);
         
         // Extract last user input from cumulative text
-        // Africa's Talking sends: "1*2*3" when user typed 1, then 2, then 3
-        // We need only the last value: "3"
-        String user_input = extract_last_input(text);
+        String userInput = extractLastInput(text);
         
-        log.debug("Extracted user input: '{}'", user_input);
+        log.debug("Extracted user input: '{}'", userInput);
         
         // Process request through service layer
-        return ussd_service.process_ussd_request(session_id, phone_number, user_input)
-            .map(UssdService.UssdResponse::format) // Convert to "CON msg" or "END msg"
+        return ussdService.processUssdRequest(sessionId, phoneNumber, userInput)
+            .map(UssdService.UssdResponse::format)
             .doOnSuccess(response -> 
                 log.info("USSD Response - SessionId: {}, Response: '{}'", 
-                    session_id, truncate_for_log(response)))
+                    sessionId, truncateForLog(response, 100)))
             .doOnError(error -> 
                 log.error("USSD Error - SessionId: {}, Error: {}", 
-                    session_id, error.getMessage(), error))
+                    sessionId, error.getMessage(), error))
             .onErrorResume(throwable -> {
                 // Fallback response on any error
                 log.error("Fatal error in USSD processing", throwable);
-                return Mono.just("END Erreur système. Veuillez réessayer plus tard.");
+                return Mono.just("END System error. Please try again later.");
             });
     }
     
@@ -116,9 +94,10 @@ public class UssdController {
      * Test endpoint for local development and debugging.
      * Simulates Africa's Talking request format.
      * 
-     * <p>Usage Example:
+     * <p>Usage:
      * <pre>
      * POST /ussd/test
+     * Content-Type: application/json
      * {
      *   "sessionId": "test-session-123",
      *   "phoneNumber": "+237600000000",
@@ -127,37 +106,51 @@ public class UssdController {
      * </pre>
      * 
      * @param request test request body
-     * @return Mono<String> USSD response
+     * @return Mono with USSD response
      */
     @PostMapping(
         value = "/test",
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.TEXT_PLAIN_VALUE
     )
-    public Mono<String> handle_test_request(@RequestBody TestUssdRequest request) {
+    public Mono<String> handleTestRequest(@RequestBody TestUssdRequest request) {
         log.info("TEST Request - SessionId: {}, Phone: {}, Text: '{}'",
-            request.session_id, request.phone_number, request.text);
+            request.sessionId, request.phoneNumber, request.text);
         
-        String user_input = extract_last_input(request.text);
+        String userInput = extractLastInput(request.text);
         
-        return ussd_service.process_ussd_request(
-                request.session_id, 
-                request.phone_number, 
-                user_input)
+        return ussdService.processUssdRequest(
+                request.sessionId, 
+                request.phoneNumber, 
+                userInput)
             .map(UssdService.UssdResponse::format)
             .doOnSuccess(response -> 
-                log.info("TEST Response: '{}'", truncate_for_log(response)));
+                log.info("TEST Response: '{}'", truncateForLog(response, 100)));
     }
     
     /**
      * Health check endpoint for monitoring.
-     * Used by load balancers and monitoring tools.
      * 
-     * @return Mono<String> status message
+     * @return Mono with status message
      */
     @GetMapping("/health")
-    public Mono<String> health_check() {
-        return Mono.just("USSD Service is running");
+    public Mono<HealthResponse> healthCheck() {
+        return Mono.just(new HealthResponse(
+            "healthy", 
+            "USSD Service is running", 
+            System.currentTimeMillis()));
+    }
+    
+    /**
+     * Gets automaton information.
+     * Useful for debugging and monitoring.
+     * 
+     * @return Mono with automaton info
+     */
+    @GetMapping("/automaton/info")
+    public Mono<String> getAutomatonInfo() {
+        // This could be enhanced to return actual automaton statistics
+        return Mono.just("Automaton is loaded and operational");
     }
     
     /**
@@ -171,12 +164,10 @@ public class UssdController {
      *   <li>User types "John": text = "1*2*John"</li>
      * </ul>
      * 
-     * <p>We need only the LAST part for each state.
-     * 
      * @param text cumulative input from Africa's Talking
      * @return last input value or empty string
      */
-    private String extract_last_input(String text) {
+    private String extractLastInput(String text) {
         if (text == null || text.trim().isEmpty()) {
             return "";
         }
@@ -187,29 +178,46 @@ public class UssdController {
     }
     
     /**
-     * Truncates response for logging (avoid huge logs).
+     * Truncates response for logging.
      * 
      * @param response full response text
+     * @param maxLength maximum length
      * @return truncated response
      */
-    private String truncate_for_log(String response) {
-        int max_length = 100;
-        if (response.length() <= max_length) {
+    private String truncateForLog(String response, int maxLength) {
+        if (response == null) {
+            return "";
+        }
+        if (response.length() <= maxLength) {
             return response;
         }
-        return response.substring(0, max_length) + "...";
+        return response.substring(0, maxLength) + "...";
     }
+    
+    // ============================================
+    // DTOs
+    // ============================================
     
     /**
      * DTO for test endpoint requests.
-     * Used only in development/testing.
      */
     @lombok.Data
     @lombok.NoArgsConstructor
     @lombok.AllArgsConstructor
     public static class TestUssdRequest {
-        private String session_id;
-        private String phone_number;
+        private String sessionId;
+        private String phoneNumber;
         private String text;
+    }
+    
+    /**
+     * DTO for health check response.
+     */
+    @lombok.Data
+    @lombok.AllArgsConstructor
+    public static class HealthResponse {
+        private String status;
+        private String message;
+        private long timestamp;
     }
 }

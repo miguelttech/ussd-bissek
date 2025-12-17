@@ -1,117 +1,697 @@
 {
-  "automata": {
-    "id": "USSD_MAIN_AUTOMATA",
-    "name": "USSD Main State Machine",
-    "version": "1.0.0",
-    "initialState": "WELCOME",
-    "states": [
-      {
-        "id": "WELCOME",
-        "label": "Welcome State",
-        "type": "initial",
-        "description": "Entry point of the USSD application"
-      },
-      {
-        "id": "MAIN_MENU",
-        "label": "Main Menu",
-        "type": "normal",
-        "description": "Main menu with available options"
-      },
-      {
-        "id": "USER_INPUT",
-        "label": "User Input",
-        "type": "normal",
-        "description": "State for receiving user input"
-      },
-      {
-        "id": "VALIDATION",
-        "label": "Validation",
-        "type": "normal",
-        "description": "Validation state for user data"
-      },
-      {
-        "id": "CONFIRMATION",
-        "label": "Confirmation",
-        "type": "normal",
-        "description": "Confirmation state for user actions"
-      },
-      {
-        "id": "PROCESSING",
-        "label": "Processing",
-        "type": "normal",
-        "description": "Processing user request"
-      },
-      {
-        "id": "SUCCESS",
-        "label": "Success",
-        "type": "final",
-        "description": "Successful completion"
-      },
-      {
-        "id": "ERROR",
-        "label": "Error",
-        "type": "final",
-        "description": "Error state"
-      },
-      {
-        "id": "TIMEOUT",
-        "label": "Timeout",
-        "type": "final",
-        "description": "Session timeout"
-      }
-    ],
-    "transitions": [
-      {
-        "from": "WELCOME",
-        "to": "MAIN_MENU",
-        "trigger": "START"
-      },
-      {
-        "from": "MAIN_MENU",
-        "to": "USER_INPUT",
-        "trigger": "OPTION_SELECTED"
-      },
-      {
-        "from": "USER_INPUT",
-        "to": "VALIDATION",
-        "trigger": "INPUT_PROVIDED"
-      },
-      {
-        "from": "VALIDATION",
-        "to": "CONFIRMATION",
-        "trigger": "VALID"
-      },
-      {
-        "from": "VALIDATION",
-        "to": "USER_INPUT",
-        "trigger": "INVALID"
-      },
-      {
-        "from": "CONFIRMATION",
-        "to": "PROCESSING",
-        "trigger": "CONFIRM"
-      },
-      {
-        "from": "CONFIRMATION",
-        "to": "MAIN_MENU",
-        "trigger": "CANCEL"
-      },
-      {
-        "from": "PROCESSING",
-        "to": "SUCCESS",
-        "trigger": "SUCCESS"
-      },
-      {
-        "from": "PROCESSING",
-        "to": "ERROR",
-        "trigger": "ERROR"
-      },
-      {
-        "from": "MAIN_MENU",
-        "to": "TIMEOUT",
-        "trigger": "IDLE_TIMEOUT"
-      }
-    ],
-    "finalStates": ["SUCCESS", "ERROR", "TIMEOUT"]
-  }
+  "automatonId": "USSD_PICKNDROP_MAIN",
+  "name": "PickNDrop USSD Main Automaton",
+  "version": "1.0.0",
+  "description": "Main USSD flow for PickNDrop package delivery system",
+  "initialStateId": "STATE_1",
+  "metadata": {
+    "author": "Thomas Djotio Ndié",
+    "createdDate": "2025-01-15",
+    "lastModified": "2025-01-15"
+  },
+  
+  "states": [
+    {
+      "stateId": "STATE_1",
+      "label": "Welcome State",
+      "stateType": "INITIAL",
+      "displayMessage": "Welcome to PickNDrop\n1. Send package\n2. Track package\n3. Pricing\n4. Marketplace\n5. Help\n6. Become relay point\n7. My account",
+      "description": "Initial welcome menu",
+      "menuOptions": [
+        {"optionKey": "1", "optionText": "Send package", "transitionTrigger": "1"},
+        {"optionKey": "2", "optionText": "Track package", "transitionTrigger": "2"},
+        {"optionKey": "3", "optionText": "Pricing", "transitionTrigger": "3"},
+        {"optionKey": "4", "optionText": "Marketplace", "transitionTrigger": "4"},
+        {"optionKey": "5", "optionText": "Help", "transitionTrigger": "5"},
+        {"optionKey": "6", "optionText": "Become relay point", "transitionTrigger": "6"},
+        {"optionKey": "7", "optionText": "My account", "transitionTrigger": "7"}
+      ]
+    },
+    
+    {
+      "stateId": "STATE_9",
+      "label": "Recipient Name Input",
+      "stateType": "NORMAL",
+      "displayMessage": "Enter recipient's full name:",
+      "description": "Capture recipient name with validation",
+      "validationType": "NAME",
+      "requiresContext": false,
+      "contextStorageKey": "recipientName"
+    },
+    
+    {
+      "stateId": "STATE_10",
+      "label": "Recipient Phone Input",
+      "stateType": "NORMAL",
+      "displayMessage": "Enter recipient's phone number (e.g., +237600000000):",
+      "description": "Capture recipient phone with validation",
+      "validationType": "PHONE",
+      "requiresContext": true,
+      "requiredContextKeys": ["recipientName"],
+      "contextStorageKey": "recipientPhone"
+    },
+    
+    {
+      "stateId": "STATE_11",
+      "label": "Recipient Email Input",
+      "stateType": "NORMAL",
+      "displayMessage": "Enter recipient's email (or press 0 to skip):",
+      "description": "Capture optional recipient email",
+      "validationType": "EMAIL_OPTIONAL",
+      "requiresContext": true,
+      "requiredContextKeys": ["recipientName", "recipientPhone"],
+      "contextStorageKey": "recipientEmail"
+    },
+    
+    {
+      "stateId": "STATE_12",
+      "label": "Recipient City Input",
+      "stateType": "NORMAL",
+      "displayMessage": "Enter delivery city:",
+      "description": "Capture delivery city",
+      "validationType": "CITY",
+      "requiresContext": true,
+      "requiredContextKeys": ["recipientName", "recipientPhone"],
+      "contextStorageKey": "recipientCity"
+    },
+    
+    {
+      "stateId": "STATE_15",
+      "label": "Recipient Address Input",
+      "stateType": "NORMAL",
+      "displayMessage": "Enter complete delivery address:",
+      "description": "Capture full delivery address",
+      "validationType": "ADDRESS",
+      "requiresContext": true,
+      "requiredContextKeys": ["recipientName", "recipientPhone", "recipientCity"],
+      "contextStorageKey": "recipientAddress"
+    },
+    
+    {
+      "stateId": "STATE_16",
+      "label": "Package Description Input",
+      "stateType": "NORMAL",
+      "displayMessage": "Describe the package contents (min 5 characters):\n99. Back to recipient info\n*. Cancel",
+      "description": "Capture package description",
+      "validationType": "DESCRIPTION",
+      "requiresContext": true,
+      "requiredContextKeys": ["recipientName", "recipientPhone", "recipientCity", "recipientAddress"],
+      "contextStorageKey": "packageDescription"
+    },
+    
+    {
+      "stateId": "STATE_18",
+      "label": "Package Weight Input",
+      "stateType": "NORMAL",
+      "displayMessage": "Enter package weight in kg (e.g., 5.5):",
+      "description": "Capture package weight",
+      "validationType": "WEIGHT",
+      "requiresContext": true,
+      "requiredContextKeys": ["packageDescription"],
+      "contextStorageKey": "packageWeight"
+    },
+    
+    {
+      "stateId": "STATE_22",
+      "label": "Fragile Question",
+      "stateType": "NORMAL",
+      "displayMessage": "Is the package fragile?\n1. Yes\n2. No",
+      "description": "Ask if package is fragile",
+      "menuOptions": [
+        {"optionKey": "1", "optionText": "Yes", "transitionTrigger": "1"},
+        {"optionKey": "2", "optionText": "No", "transitionTrigger": "2"}
+      ],
+      "requiresContext": true,
+      "requiredContextKeys": ["packageWeight"],
+      "contextStorageKey": "fragile"
+    },
+    
+    {
+      "stateId": "STATE_23",
+      "label": "Perishable Question",
+      "stateType": "NORMAL",
+      "displayMessage": "Does it contain perishable goods?\n1. Yes\n2. No",
+      "description": "Ask if package contains perishables",
+      "menuOptions": [
+        {"optionKey": "1", "optionText": "Yes", "transitionTrigger": "1"},
+        {"optionKey": "2", "optionText": "No", "transitionTrigger": "2"}
+      ],
+      "requiresContext": true,
+      "requiredContextKeys": ["fragile"],
+      "contextStorageKey": "perishable"
+    },
+    
+    {
+      "stateId": "STATE_24",
+      "label": "Liquid Question",
+      "stateType": "NORMAL",
+      "displayMessage": "Does it contain liquids?\n1. Yes\n2. No",
+      "description": "Ask if package contains liquids",
+      "menuOptions": [
+        {"optionKey": "1", "optionText": "Yes", "transitionTrigger": "1"},
+        {"optionKey": "2", "optionText": "No", "transitionTrigger": "2"}
+      ],
+      "requiresContext": true,
+      "requiredContextKeys": ["perishable"],
+      "contextStorageKey": "liquid"
+    },
+    
+    {
+      "stateId": "STATE_25",
+      "label": "Insurance Question",
+      "stateType": "NORMAL",
+      "displayMessage": "Do you want to insure this package?\n1. Yes\n2. No",
+      "description": "Ask if package should be insured",
+      "menuOptions": [
+        {"optionKey": "1", "optionText": "Yes", "transitionTrigger": "1"},
+        {"optionKey": "2", "optionText": "No", "transitionTrigger": "2"}
+      ],
+      "requiresContext": true,
+      "requiredContextKeys": ["liquid"],
+      "contextStorageKey": "insured"
+    },
+    
+    {
+      "stateId": "STATE_26",
+      "label": "Declared Value Input",
+      "stateType": "NORMAL",
+      "displayMessage": "Enter declared value in XAF:",
+      "description": "Capture declared value for insurance",
+      "validationType": "DECLARED_VALUE",
+      "requiresContext": true,
+      "requiredContextKeys": ["insured"],
+      "contextStorageKey": "declaredValue"
+    },
+    
+    {
+      "stateId": "STATE_27",
+      "label": "Transport Mode Selection",
+      "stateType": "NORMAL",
+      "displayMessage": "Select transport mode:\n1. Truck\n2. Tricycle\n3. Motorcycle\n4. Bicycle\n5. Car\n99. Back",
+      "description": "Choose transport mode",
+      "menuOptions": [
+        {"optionKey": "1", "optionText": "Truck", "transitionTrigger": "1"},
+        {"optionKey": "2", "optionText": "Tricycle", "transitionTrigger": "2"},
+        {"optionKey": "3", "optionText": "Motorcycle", "transitionTrigger": "3"},
+        {"optionKey": "4", "optionText": "Bicycle", "transitionTrigger": "4"},
+        {"optionKey": "5", "optionText": "Car", "transitionTrigger": "5"},
+        {"optionKey": "99", "optionText": "Back", "transitionTrigger": "99"}
+      ],
+      "requiresContext": true,
+      "contextStorageKey": "transportMode"
+    },
+    
+    {
+      "stateId": "STATE_33",
+      "label": "Delivery Type Selection",
+      "stateType": "NORMAL",
+      "displayMessage": "Select delivery type:\n1. Standard (3 days)\n2. Express 48h\n3. Express 24h\n99. Back",
+      "description": "Choose delivery speed",
+      "menuOptions": [
+        {"optionKey": "1", "optionText": "Standard (3 days)", "transitionTrigger": "1"},
+        {"optionKey": "2", "optionText": "Express 48h", "transitionTrigger": "2"},
+        {"optionKey": "3", "optionText": "Express 24h", "transitionTrigger": "3"},
+        {"optionKey": "99", "optionText": "Back", "transitionTrigger": "99"}
+      ],
+      "requiresContext": true,
+      "requiredContextKeys": ["transportMode"],
+      "contextStorageKey": "deliveryType"
+    },
+    
+    {
+      "stateId": "STATE_37",
+      "label": "Payment Method Selection",
+      "stateType": "NORMAL",
+      "displayMessage": "Select payment method:\n1. Cash\n2. Mobile Money\n3. Orange Money\n4. Paid by recipient\n99. Back",
+      "description": "Choose payment method",
+      "menuOptions": [
+        {"optionKey": "1", "optionText": "Cash", "transitionTrigger": "1"},
+        {"optionKey": "2", "optionText": "Mobile Money", "transitionTrigger": "2"},
+        {"optionKey": "3", "optionText": "Orange Money", "transitionTrigger": "3"},
+        {"optionKey": "4", "optionText": "Paid by recipient", "transitionTrigger": "4"},
+        {"optionKey": "99", "optionText": "Back", "transitionTrigger": "99"}
+      ],
+      "requiresContext": true,
+      "requiredContextKeys": ["deliveryType"],
+      "contextStorageKey": "paymentMethod"
+    },
+    
+    {
+      "stateId": "STATE_43",
+      "label": "Shipment Confirmation",
+      "stateType": "NORMAL",
+      "displayMessage": "SUMMARY:\n[Dynamic content loaded from session]\n\n1. Confirm\n90. Change recipient\n91. Change package\n92. Change transport\n93. Change delivery\n94. Change payment",
+      "description": "Show summary and confirm shipment",
+      "businessServiceMethod": "generateShipmentSummary",
+      "requiresContext": true,
+      "requiredContextKeys": ["recipientName", "packageDescription", "transportMode", "deliveryType", "paymentMethod"],
+      "menuOptions": [
+        {"optionKey": "1", "optionText": "Confirm", "transitionTrigger": "1"},
+        {"optionKey": "90", "optionText": "Change recipient", "transitionTrigger": "90"},
+        {"optionKey": "91", "optionText": "Change package", "transitionTrigger": "91"},
+        {"optionKey": "92", "optionText": "Change transport", "transitionTrigger": "92"},
+        {"optionKey": "93", "optionText": "Change delivery", "transitionTrigger": "93"},
+        {"optionKey": "94", "optionText": "Change payment", "transitionTrigger": "94"}
+      ]
+    },
+    
+    {
+      "stateId": "STATE_44",
+      "label": "Shipment Created",
+      "stateType": "FINAL",
+      "displayMessage": "Shipment created successfully!\nTracking ID: [TRACKING_ID]\nThank you for using PickNDrop!",
+      "description": "Final confirmation after shipment creation",
+      "businessServiceMethod": "createShipment",
+      "terminatesSession": true
+    },
+    
+    {
+      "stateId": "STATE_3",
+      "label": "Track Package",
+      "stateType": "NORMAL",
+      "displayMessage": "Enter tracking ID (e.g., PKND-20250115-00001):\n*. Cancel",
+      "description": "Enter tracking ID to track package",
+      "validationType": "TRACKING_ID",
+      "contextStorageKey": "trackingId"
+    },
+    
+    {
+      "stateId": "STATE_45",
+      "label": "Package Info Display",
+      "stateType": "FINAL",
+      "displayMessage": "Package Information:\n[Dynamic tracking information]\n\n99. Track another package",
+      "description": "Display package tracking information",
+      "businessServiceMethod": "getPackageTrackingInfo",
+      "requiresContext": true,
+      "requiredContextKeys": ["trackingId"],
+      "terminatesSession": false
+    },
+    
+    {
+      "stateId": "STATE_8",
+      "label": "My Account Menu",
+      "stateType": "NORMAL",
+      "displayMessage": "My Account:\n1. Login\n2. Create account",
+      "description": "Account management menu",
+      "menuOptions": [
+        {"optionKey": "1", "optionText": "Login", "transitionTrigger": "1"},
+        {"optionKey": "2", "optionText": "Create account", "transitionTrigger": "2"}
+      ]
+    },
+    
+    {
+      "stateId": "STATE_47",
+      "label": "Create Account Type",
+      "stateType": "NORMAL",
+      "displayMessage": "Select account type:\n1. Client\n2. Freelance\n3. Agency\n4. Delivery person",
+      "description": "Choose account type for registration",
+      "menuOptions": [
+        {"optionKey": "1", "optionText": "Client", "transitionTrigger": "1"},
+        {"optionKey": "2", "optionText": "Freelance", "transitionTrigger": "2"},
+        {"optionKey": "3", "optionText": "Agency", "transitionTrigger": "3"},
+        {"optionKey": "4", "optionText": "Delivery person", "transitionTrigger": "4"}
+      ],
+      "contextStorageKey": "accountType"
+    },
+    
+    {
+      "stateId": "STATE_ERROR",
+      "label": "Error State",
+      "stateType": "FINAL",
+      "displayMessage": "An error occurred. Please try again later.",
+      "description": "Generic error state",
+      "terminatesSession": true
+    }
+  ],
+  
+  "transitions": [
+    {
+      "fromStateId": "STATE_1",
+      "toStateId": "STATE_9",
+      "trigger": "1",
+      "label": "User selects 'Send package'",
+      "priority": 10
+    },
+    {
+      "fromStateId": "STATE_1",
+      "toStateId": "STATE_3",
+      "trigger": "2",
+      "label": "User selects 'Track package'",
+      "priority": 10
+    },
+    {
+      "fromStateId": "STATE_1",
+      "toStateId": "STATE_8",
+      "trigger": "7",
+      "label": "User selects 'My account'",
+      "priority": 10
+    },
+    {
+      "fromStateId": "STATE_9",
+      "toStateId": "STATE_10",
+      "trigger": "nameValid",
+      "label": "Valid name entered",
+      "requiresValidation": true,
+      "validationType": "NAME",
+      "priority": 10
+    },
+    {
+      "fromStateId": "STATE_9",
+      "toStateId": "STATE_9",
+      "trigger": "*",
+      "label": "Invalid name - retry",
+      "isErrorTransition": true,
+      "errorMessage": "Invalid name format. Please enter letters only.",
+      "maxRetries": 3,
+      "priority": 5
+    },
+    {
+      "fromStateId": "STATE_10",
+      "toStateId": "STATE_11",
+      "trigger": "phoneValid",
+      "label": "Valid phone entered",
+      "requiresValidation": true,
+      "validationType": "PHONE",
+      "priority": 10
+    },
+    {
+      "fromStateId": "STATE_10",
+      "toStateId": "STATE_10",
+      "trigger": "*",
+      "label": "Invalid phone - retry",
+      "isErrorTransition": true,
+      "errorMessage": "Invalid phone format. Use international format (+237...).",
+      "maxRetries": 3,
+      "priority": 5
+    },
+    {
+      "fromStateId": "STATE_11",
+      "toStateId": "STATE_12",
+      "trigger": "emailValid",
+      "label": "Valid email entered or skipped",
+      "requiresValidation": true,
+      "validationType": "EMAIL_OPTIONAL",
+      "priority": 10
+    },
+    {
+      "fromStateId": "STATE_12",
+      "toStateId": "STATE_15",
+      "trigger": "cityValid",
+      "label": "Valid city entered",
+      "requiresValidation": true,
+      "validationType": "CITY",
+      "priority": 10
+    },
+    {
+      "fromStateId": "STATE_15",
+      "toStateId": "STATE_16",
+      "trigger": "addressValid",
+      "label": "Valid address entered",
+      "requiresValidation": true,
+      "validationType": "ADDRESS",
+      "priority": 10
+    },
+    {
+      "fromStateId": "STATE_16",
+      "toStateId": "STATE_18",
+      "trigger": "descriptionValid",
+      "label": "Valid description entered",
+      "requiresValidation": true,
+      "validationType": "DESCRIPTION",
+      "priority": 10
+    },
+    {
+      "fromStateId": "STATE_16",
+      "toStateId": "STATE_9",
+      "trigger": "99",
+      "label": "Back to recipient info",
+      "priority": 15
+    },
+    {
+      "fromStateId": "STATE_18",
+      "toStateId": "STATE_22",
+      "trigger": "weightValid",
+      "label": "Valid weight entered",
+      "requiresValidation": true,
+      "validationType": "WEIGHT",
+      "priority": 10
+    },
+    {
+      "fromStateId": "STATE_22",
+      "toStateId": "STATE_23",
+      "trigger": "1",
+      "label": "Package is fragile",
+      "actions": ["storeInSession:fragile=true"],
+      "priority": 10
+    },
+    {
+      "fromStateId": "STATE_22",
+      "toStateId": "STATE_23",
+      "trigger": "2",
+      "label": "Package is not fragile",
+      "actions": ["storeInSession:fragile=false"],
+      "priority": 10
+    },
+    {
+      "fromStateId": "STATE_23",
+      "toStateId": "STATE_24",
+      "trigger": "1",
+      "label": "Package is perishable",
+      "actions": ["storeInSession:perishable=true"],
+      "priority": 10
+    },
+    {
+      "fromStateId": "STATE_23",
+      "toStateId": "STATE_24",
+      "trigger": "2",
+      "label": "Package is not perishable",
+      "actions": ["storeInSession:perishable=false"],
+      "priority": 10
+    },
+    {
+      "fromStateId": "STATE_24",
+      "toStateId": "STATE_25",
+      "trigger": "1",
+      "label": "Package contains liquid",
+      "actions": ["storeInSession:liquid=true"],
+      "priority": 10
+    },
+    {
+      "fromStateId": "STATE_24",
+      "toStateId": "STATE_25",
+      "trigger": "2",
+      "label": "Package does not contain liquid",
+      "actions": ["storeInSession:liquid=false"],
+      "priority": 10
+    },
+    {
+      "fromStateId": "STATE_25",
+      "toStateId": "STATE_26",
+      "trigger": "1",
+      "label": "User wants insurance",
+      "actions": ["storeInSession:insured=true"],
+      "priority": 10
+    },
+    {
+      "fromStateId": "STATE_25",
+      "toStateId": "STATE_27",
+      "trigger": "2",
+      "label": "User does not want insurance",
+      "actions": ["storeInSession:insured=false"],
+      "priority": 10
+    },
+    {
+      "fromStateId": "STATE_26",
+      "toStateId": "STATE_27",
+      "trigger": "valueValid",
+      "label": "Valid declared value entered",
+      "requiresValidation": true,
+      "validationType": "DECLARED_VALUE",
+      "priority": 10
+    },
+    {
+      "fromStateId": "STATE_27",
+      "toStateId": "STATE_33",
+      "trigger": "1",
+      "label": "Truck selected",
+      "actions": ["storeInSession:transportMode=TRUCK"],
+      "priority": 10
+    },
+    {
+      "fromStateId": "STATE_27",
+      "toStateId": "STATE_33",
+      "trigger": "2",
+      "label": "Tricycle selected",
+      "actions": ["storeInSession:transportMode=TRICYCLE"],
+      "priority": 10
+    },
+    {
+      "fromStateId": "STATE_27",
+      "toStateId": "STATE_33",
+      "trigger": "3",
+      "label": "Motorcycle selected",
+      "actions": ["storeInSession:transportMode=MOTORCYCLE"],
+      "priority": 10
+    },
+    {
+      "fromStateId": "STATE_27",
+      "toStateId": "STATE_33",
+      "trigger": "4",
+      "label": "Bicycle selected",
+      "actions": ["storeInSession:transportMode=BICYCLE"],
+      "priority": 10
+    },
+    {
+      "fromStateId": "STATE_27",
+      "toStateId": "STATE_33",
+      "trigger": "5",
+      "label": "Car selected",
+      "actions": ["storeInSession:transportMode=CAR"],
+      "priority": 10
+    },
+    {
+      "fromStateId": "STATE_27",
+      "toStateId": "STATE_16",
+      "trigger": "99",
+      "label": "Back to package info",
+      "priority": 15
+    },
+    {
+      "fromStateId": "STATE_33",
+      "toStateId": "STATE_37",
+      "trigger": "1",
+      "label": "Standard delivery selected",
+      "actions": ["storeInSession:deliveryType=STANDARD"],
+      "priority": 10
+    },
+    {
+      "fromStateId": "STATE_33",
+      "toStateId": "STATE_37",
+      "trigger": "2",
+      "label": "Express 48h selected",
+      "actions": ["storeInSession:deliveryType=EXPRESS_48H"],
+      "priority": 10
+    },
+    {
+      "fromStateId": "STATE_33",
+      "toStateId": "STATE_37",
+      "trigger": "3",
+      "label": "Express 24h selected",
+      "actions": ["storeInSession:deliveryType=EXPRESS_24H"],
+      "priority": 10
+    },
+    {
+      "fromStateId": "STATE_33",
+      "toStateId": "STATE_27",
+      "trigger": "99",
+      "label": "Back to transport selection",
+      "priority": 15
+    },
+    {
+      "fromStateId": "STATE_37",
+      "toStateId": "STATE_43",
+      "trigger": "1",
+      "label": "Cash payment selected",
+      "actions": ["storeInSession:paymentMethod=CASH"],
+      "priority": 10
+    },
+    {
+      "fromStateId": "STATE_37",
+      "toStateId": "STATE_43",
+      "trigger": "2",
+      "label": "Mobile Money selected",
+      "actions": ["storeInSession:paymentMethod=MOBILE_MONEY"],
+      "priority": 10
+    },
+    {
+      "fromStateId": "STATE_37",
+      "toStateId": "STATE_43",
+      "trigger": "3",
+      "label": "Orange Money selected",
+      "actions": ["storeInSession:paymentMethod=ORANGE_MONEY"],
+      "priority": 10
+    },
+    {
+      "fromStateId": "STATE_37",
+      "toStateId": "STATE_43",
+      "trigger": "4",
+      "label": "Paid by recipient selected",
+      "actions": ["storeInSession:paymentMethod=PAID_BY_RECIPIENT"],
+      "priority": 10
+    },
+    {
+      "fromStateId": "STATE_37",
+      "toStateId": "STATE_33",
+      "trigger": "99",
+      "label": "Back to delivery type",
+      "priority": 15
+    },
+    {
+      "fromStateId": "STATE_43",
+      "toStateId": "STATE_44",
+      "trigger": "1",
+      "label": "User confirms shipment",
+      "priority": 10
+    },
+    {
+      "fromStateId": "STATE_43",
+      "toStateId": "STATE_9",
+      "trigger": "90",
+      "label": "Change recipient info",
+      "priority": 15
+    },
+    {
+      "fromStateId": "STATE_43",
+      "toStateId": "STATE_16",
+      "trigger": "91",
+      "label": "Change package info",
+      "priority": 15
+    },
+    {
+      "fromStateId": "STATE_43",
+      "toStateId": "STATE_27",
+      "trigger": "92",
+      "label": "Change transport",
+      "priority": 15
+    },
+    {
+      "fromStateId": "STATE_43",
+      "toStateId": "STATE_33",
+      "trigger": "93",
+      "label": "Change delivery type",
+      "priority": 15
+    },
+    {
+      "fromStateId": "STATE_43",
+      "toStateId": "STATE_37",
+      "trigger": "94",
+      "label": "Change payment method",
+      "priority": 15
+    },
+    {
+      "fromStateId": "STATE_3",
+      "toStateId": "STATE_45",
+      "trigger": "trackingIdValid",
+      "label": "Valid tracking ID entered",
+      "requiresValidation": true,
+      "validationType": "TRACKING_ID",
+      "priority": 10
+    },
+    {
+      "fromStateId": "STATE_3",
+      "toStateId": "STATE_1",
+      "trigger": "*",
+      "label": "Cancel tracking",
+      "priority": 5
+    },
+    {
+      "fromStateId": "STATE_8",
+      "toStateId": "STATE_47",
+      "trigger": "2",
+      "label": "Create account selected",
+      "priority": 10
+    }
+  ],
+  
+  "finalStateIds": ["STATE_44", "STATE_45", "STATE_ERROR"]
 }

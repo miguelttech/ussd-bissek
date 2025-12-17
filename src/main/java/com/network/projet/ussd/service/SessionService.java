@@ -1,47 +1,37 @@
 // ============================================
 // SessionService.java
+// Enhanced session management with SessionContext model
 // ============================================
 package com.network.projet.ussd.service;
 
 import com.network.projet.ussd.exception.SessionExpiredException;
+import com.network.projet.ussd.model.SessionContext;
 import com.network.projet.ussd.repository.SessionRepository;
-import com.network.projet.ussd.util.UssdConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
 /**
- * Service for managing USSD session state.
+ * Service for managing USSD session state with enhanced context model.
  * 
- * <p>Session Management:
+ * <p>Responsibilities:
  * <ul>
- *   <li>Create new session on first USSD request</li>
- *   <li>Store user state between USSD interactions</li>
- *   <li>Expire sessions after timeout</li>
- *   <li>Clean up old sessions periodically</li>
+ *   <li>Create and initialize sessions</li>
+ *   <li>Store and retrieve session context</li>
+ *   <li>Manage session lifecycle</li>
+ *   <li>Handle session expiration</li>
+ *   <li>Provide session statistics</li>
  * </ul>
  * 
- * <p>Session Data Structure:
- * <pre>
- * {
- *   "user_id": 123,
- *   "current_state": "ENTER_WEIGHT",
- *   "phone": "+237600000000",
- *   "answers": {
- *     "recipient_name": "John Doe",
- *     "recipient_phone": "+237611111111"
- *   },
- *   "created_at": "2025-01-15T10:30:00",
- *   "last_activity": "2025-01-15T10:35:00"
- * }
- * </pre>
+ * <p>Session storage:
+ * Current implementation uses in-memory storage (SessionRepository).
+ * Production should use Redis for distributed sessions and persistence.
  * 
  * @author Thomas Djotio Ndié
  * @version 1.0
@@ -52,161 +42,275 @@ import java.util.UUID;
 @Slf4j
 public class SessionService {
     
-    private final SessionRepository session_repository;
+    private final SessionRepository sessionRepository;
     
     /**
-     * Session timeout duration (from properties).
+     * Session timeout in seconds.
+     * Configurable via application.properties: app.session.timeout
+     * Default: 600 seconds (10 minutes)
      */
-    private static final Duration SESSION_TIMEOUT = 
-        Duration.ofMinutes(UssdConstants.SESSION_TIMEOUT_MINUTES);
+    @Value("${app.session.timeout:600}")
+    private long sessionTimeoutSeconds;
+    
+    /**
+     * Session ID prefix for identification.
+     */
+    private static final String SESSION_ID_PREFIX = "USSD_";
     
     /**
      * Creates a new USSD session.
      * 
-     * @param phone_number user's phone number
-     * @return Mono<String> session ID
+     * @param phoneNumber user's phone number
+     * @return Mono with session ID
      */
-    public Mono<String> create_session(String phone_number) {
-        String session_id = generate_session_id();
+    public Mono<String> createSession(String phoneNumber) {
+        String sessionId = generateSessionId();
         
-        log.info("Creating new session: {} for phone: {}", session_id, phone_number);
+        log.info("Creating new session: {} for phone: {}", sessionId, phoneNumber);
         
-        Map<String, Object> session_data = new HashMap<>();
-        session_data.put("phone", phone_number);
-        session_data.put("current_state", "WELCOME");
-        session_data.put("created_at", LocalDateTime.now().toString());
-        session_data.put("last_activity", LocalDateTime.now().toString());
-        session_data.put("answers", new HashMap<String, String>());
+        SessionContext context = SessionContext.builder()
+            .sessionId(sessionId)
+            .phoneNumber(phoneNumber)
+            .currentStateId(null) // Will be set by UssdService
+            .authenticated(false)
+            .build();
         
-        return session_repository.save(session_id, session_data)
-            .thenReturn(session_id);
+        return sessionRepository.save(sessionId, context.toMap())
+            .thenReturn(sessionId)
+            .doOnSuccess(id -> log.debug("Session created: {}", id));
     }
     
     /**
-     * Gets session data.
+     * Gets session context.
+     * Validates expiration and updates activity timestamp.
      * 
-     * @param session_id session identifier
-     * @return Mono<Map> session data or error if expired
+     * @param sessionId session identifier
+     * @return Mono with session context
      */
-    public Mono<Map<String, Object>> get_session(String session_id) {
-        return session_repository.find(session_id)
-            .flatMap(session_data -> {
-                // Vérifier si la session a expiré
-                String last_activity_str = (String) session_data.get("last_activity");
-                LocalDateTime last_activity = LocalDateTime.parse(last_activity_str);
+    public Mono<SessionContext> getSessionContext(String sessionId) {
+        return sessionRepository.find(sessionId)
+            .flatMap(sessionMap -> {
+                SessionContext context = SessionContext.fromMap(sessionMap);
                 
-                if (is_expired(last_activity)) {
-                    log.warn("Session expired: {}", session_id);
-                    return session_repository.delete(session_id)
+                // Check if expired
+                if (context.isExpired(sessionTimeoutSeconds)) {
+                    log.warn("Session expired: {}", sessionId);
+                    return sessionRepository.delete(sessionId)
                         .then(Mono.error(new SessionExpiredException(
-                            "Session has expired", session_id)));
+                            "Session has expired", sessionId)));
                 }
                 
-                // Mettre à jour last_activity
-                session_data.put("last_activity", LocalDateTime.now().toString());
-                return session_repository.save(session_id, session_data)
-                    .thenReturn(session_data);
+                // Update activity
+                context.updateActivity();
+                
+                // Save updated timestamp
+                return sessionRepository.save(sessionId, context.toMap())
+                    .thenReturn(context);
             })
             .switchIfEmpty(Mono.error(new SessionExpiredException(
-                "Session not found", session_id)));
+                "Session not found", sessionId)));
     }
     
     /**
-     * Updates session data.
+     * Gets session data as map (legacy compatibility).
      * 
-     * @param session_id session identifier
+     * @param sessionId session identifier
+     * @return Mono with session map
+     */
+    public Mono<Map<String, Object>> getSession(String sessionId) {
+        return getSessionContext(sessionId)
+            .map(SessionContext::toMap);
+    }
+    
+    /**
+     * Updates session context.
+     * 
+     * @param sessionId session identifier
      * @param key data key
      * @param value data value
-     * @return Mono<Void> completion signal
+     * @return Mono completion
      */
-    public Mono<Void> update_session(String session_id, String key, Object value) {
-        return get_session(session_id)
-            .flatMap(session_data -> {
-                session_data.put(key, value);
-                return session_repository.save(session_id, session_data);
+    public Mono<Void> updateSession(String sessionId, String key, Object value) {
+        return getSessionContext(sessionId)
+            .flatMap(context -> {
+                // Update based on key type
+                switch (key) {
+                    case "currentStateId" -> context.setCurrentStateId((String) value);
+                    case "userId" -> context.setUserId(value != null ? ((Number) value).longValue() : null);
+                    case "authenticated" -> context.setAuthenticated((Boolean) value);
+                    case "language" -> context.setLanguage((String) value);
+                    default -> context.storeMetadata(key, value);
+                }
+                
+                return sessionRepository.save(sessionId, context.toMap());
             });
     }
     
     /**
-     * Updates current state.
+     * Updates current state in session.
      * 
-     * @param session_id session identifier
-     * @param new_state new state ID
-     * @return Mono<Void> completion signal
+     * @param sessionId session identifier
+     * @param newStateId new state ID
+     * @return Mono completion
      */
-    public Mono<Void> update_state(String session_id, String new_state) {
-        log.debug("Updating session {} to state: {}", session_id, new_state);
-        return update_session(session_id, "current_state", new_state);
+    public Mono<Void> updateState(String sessionId, String newStateId) {
+        log.debug("Updating session {} to state: {}", sessionId, newStateId);
+        return updateSession(sessionId, "currentStateId", newStateId);
     }
     
     /**
      * Stores user answer in session.
      * 
-     * @param session_id session identifier
-     * @param question_key question identifier
+     * @param sessionId session identifier
+     * @param questionKey question identifier
      * @param answer user's answer
-     * @return Mono<Void> completion signal
+     * @return Mono completion
      */
-    public Mono<Void> store_answer(String session_id, String question_key, String answer) {
-        return get_session(session_id)
-            .flatMap(session_data -> {
-                @SuppressWarnings("unchecked")
-                Map<String, String> answers = (Map<String, String>) session_data.get("answers");
-                answers.put(question_key, answer);
-                return session_repository.save(session_id, session_data);
+    public Mono<Void> storeAnswer(String sessionId, String questionKey, String answer) {
+        return getSessionContext(sessionId)
+            .flatMap(context -> {
+                context.storeAnswer(questionKey, answer);
+                context.resetRetry(); // Reset retry count on successful input
+                return sessionRepository.save(sessionId, context.toMap());
             });
     }
     
     /**
      * Gets stored answer.
      * 
-     * @param session_id session identifier
-     * @param question_key question identifier
-     * @return Mono<String> answer or empty
+     * @param sessionId session identifier
+     * @param questionKey question identifier
+     * @return Mono with answer or empty
      */
-    public Mono<String> get_answer(String session_id, String question_key) {
-        return get_session(session_id)
-            .map(session_data -> {
-                @SuppressWarnings("unchecked")
-                Map<String, String> answers = (Map<String, String>) session_data.get("answers");
-                return answers.get(question_key);
-            });
+    public Mono<String> getAnswer(String sessionId, String questionKey) {
+        return getSessionContext(sessionId)
+            .map(context -> context.getAnswer(questionKey))
+            .filter(answer -> answer != null);
     }
     
     /**
      * Gets all stored answers.
      * 
-     * @param session_id session identifier
-     * @return Mono<Map> all answers
+     * @param sessionId session identifier
+     * @return Mono with answers map
      */
-    public Mono<Map<String, String>> get_all_answers(String session_id) {
-        return get_session(session_id)
-            .map(session_data -> {
-                @SuppressWarnings("unchecked")
-                Map<String, String> answers = (Map<String, String>) session_data.get("answers");
-                return answers;
+    public Mono<Map<String, String>> getAllAnswers(String sessionId) {
+        return getSessionContext(sessionId)
+            .map(SessionContext::getAnswers);
+    }
+    
+    /**
+     * Increments retry count for current state.
+     * Used when validation fails.
+     * 
+     * @param sessionId session identifier
+     * @return Mono with updated retry count
+     */
+    public Mono<Integer> incrementRetry(String sessionId) {
+        return getSessionContext(sessionId)
+            .flatMap(context -> {
+                context.incrementRetry();
+                return sessionRepository.save(sessionId, context.toMap())
+                    .thenReturn(context.getRetryCount());
             });
     }
     
     /**
-     * Deletes session (on completion or error).
+     * Resets retry count.
      * 
-     * @param session_id session identifier
-     * @return Mono<Void> completion signal
+     * @param sessionId session identifier
+     * @return Mono completion
      */
-    public Mono<Void> end_session(String session_id) {
-        log.info("Ending session: {}", session_id);
-        return session_repository.delete(session_id);
+    public Mono<Void> resetRetry(String sessionId) {
+        return getSessionContext(sessionId)
+            .flatMap(context -> {
+                context.resetRetry();
+                return sessionRepository.save(sessionId, context.toMap());
+            });
+    }
+    
+    /**
+     * Checks if session has exceeded max retries.
+     * 
+     * @param sessionId session identifier
+     * @param maxRetries maximum allowed retries
+     * @return Mono with true if exceeded
+     */
+    public Mono<Boolean> hasExceededRetries(String sessionId, int maxRetries) {
+        return getSessionContext(sessionId)
+            .map(context -> context.hasExceededRetries(maxRetries));
+    }
+    
+    /**
+     * Ends session and clears data.
+     * 
+     * @param sessionId session identifier
+     * @return Mono completion
+     */
+    public Mono<Void> endSession(String sessionId) {
+        log.info("Ending session: {}", sessionId);
+        return sessionRepository.delete(sessionId)
+            .doOnSuccess(v -> log.debug("Session ended: {}", sessionId));
     }
     
     /**
      * Checks if session exists and is valid.
      * 
-     * @param session_id session identifier
-     * @return Mono<Boolean> true if valid
+     * @param sessionId session identifier
+     * @return Mono with true if valid
      */
-    public Mono<Boolean> is_valid_session(String session_id) {
-        return session_repository.exists(session_id);
+    public Mono<Boolean> isValidSession(String sessionId) {
+        return sessionRepository.exists(sessionId)
+            .flatMap(exists -> {
+                if (!exists) {
+                    return Mono.just(false);
+                }
+                
+                // Check if expired
+                return getSessionContext(sessionId)
+                    .map(context -> !context.isExpired(sessionTimeoutSeconds))
+                    .onErrorReturn(false);
+            });
+    }
+    
+    /**
+     * Authenticates session with user ID.
+     * 
+     * @param sessionId session identifier
+     * @param userId user ID
+     * @return Mono completion
+     */
+    public Mono<Void> authenticateSession(String sessionId, Long userId) {
+        return getSessionContext(sessionId)
+            .flatMap(context -> {
+                context.setUserId(userId);
+                context.setAuthenticated(true);
+                return sessionRepository.save(sessionId, context.toMap());
+            })
+            .doOnSuccess(v -> log.info("Session authenticated: {} for user: {}", sessionId, userId));
+    }
+    
+    /**
+     * Gets session statistics.
+     * 
+     * @param sessionId session identifier
+     * @return Mono with statistics map
+     */
+    public Mono<Map<String, Object>> getSessionStatistics(String sessionId) {
+        return getSessionContext(sessionId)
+            .map(context -> {
+                Map<String, Object> stats = Map.of(
+                    "sessionId", context.getSessionId(),
+                    "phoneNumber", context.getPhoneNumber(),
+                    "currentState", context.getCurrentStateId(),
+                    "authenticated", context.isAuthenticated(),
+                    "durationSeconds", context.getSessionDurationSeconds(),
+                    "idleSeconds", context.getIdleTimeSeconds(),
+                    "answersCount", context.getAnswers().size(),
+                    "retryCount", context.getRetryCount()
+                );
+                return stats;
+            });
     }
     
     /**
@@ -214,18 +318,21 @@ public class SessionService {
      * 
      * @return session ID
      */
-    private String generate_session_id() {
-        return UssdConstants.SESSION_ID_PREFIX + UUID.randomUUID().toString();
+    private String generateSessionId() {
+        return SESSION_ID_PREFIX + UUID.randomUUID().toString();
     }
     
     /**
-     * Checks if session has expired.
+     * Cleans up expired sessions.
+     * Should be called periodically (scheduled task).
      * 
-     * @param last_activity last activity timestamp
-     * @return true if expired
+     * @return Mono with number of sessions cleaned
      */
-    private boolean is_expired(LocalDateTime last_activity) {
-        return Duration.between(last_activity, LocalDateTime.now())
-            .compareTo(SESSION_TIMEOUT) > 0;
+    public Mono<Long> cleanupExpiredSessions() {
+        log.info("Starting cleanup of expired sessions...");
+        // Implementation depends on SessionRepository capabilities
+        // For now, just log
+        return Mono.just(0L)
+            .doOnSuccess(count -> log.info("Cleaned up {} expired sessions", count));
     }
 }
